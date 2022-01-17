@@ -2,78 +2,172 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define LEN 32
+
+
+#define LINELEN 32
 #define NAMELEN 8
+#define LINECOUNT 512
+
 
 struct node {
-    char name[NAMELEN];
-    int value;
+    int init;
+    char *name;
+    unsigned short int value;
     struct node* next;
-} *root;
+} *root, *temp;
 
-int all_numbers(char *token);
+
+
+int all_initialized(int *p, int k);
+int initialized(char *token);
+int process_line(char *original_line);
+unsigned short int all_numbers(char *token);
 void create(char *token);
-int get_value(char *token);
-void int_assign(char *token, int n);
-int do_operation(char *token1, char *token2, char *operation);
+unsigned short int get_value(char *token);
+void int_assign(char *token, unsigned short int n);
+unsigned short int do_operation(char *token1, char *token2, char *operation);
+
+
+
+
 
 void main()
 {
     root=malloc(sizeof(struct node));
     root->next=NULL;
-    char line[LEN];
-    char *token;
-    while(fgets(line,LEN,stdin)!=NULL)
+
+    char line[LINELEN];
+    char input[LINECOUNT][LINELEN];
+    int k=0;
+
+    while(fgets(line,LINELEN,stdin)!=NULL)
     {
-        token=strtok(line," ");
-        
-        if(strcmp(token,"NOT")==0)
-        {
-            token=strtok(NULL," ");
-
-            char *token2;
-            token2=strtok(NULL," ");    // ->
-            token2=strtok(NULL," ");
-
-            create(token);
-            create(token2);
-
-            int_assign(token, ~get_value(token2));
-        }
-        
-        else
-        {
-            char *token2, *token3;
-            char *operation;
-            
-            operation=strtok(NULL," ");
-            token2=strtok(NULL," ");
-
-            token3=strtok(NULL," ");    // ->
-            token3=strtok(NULL," ");
-            
-            create(token);
-            create(token2);
-            create(token3);
-            
-            int_assign(token3, do_operation(token, token2, operation));
-        }
-        
+        if(line[strlen(line)-1]=='\n' || line[strlen(line)-1]==EOF)
+            line[strlen(line)-1]='\0';
+        if(strlen(line)<2) continue;
+        strcpy(input[k++],line);
     }
     
-    printf("%d\n",get_value("a"));
+    int *processed=malloc(sizeof(int)*k);
+    
+    for(int i=0;i<k;i++)
+        processed[i]=0;
+        
+    while(!all_initialized(processed, k))
+        for(int i=0;i<k;i++)
+            if(!processed[i])
+                processed[i]=process_line(input[i]);
+    
+    
+    temp=root->next;
+    while(temp!=NULL)
+    {
+       if(strcmp(temp->name,"a")==0)
+        {
+            printf("%hu\n",temp->value);
+            break;
+        }
+        temp=temp->next;
+    }
     return;
 }
 
+int all_initialized(int *p, int k)
+{
+    for(int i=0;i<k;i++)
+        if(!p[i])
+            return 0;
+    return 1;
+}
     
+    
+int process_line(char *original_line)
+{
+    char *line=malloc(LINELEN);
+    strcpy(line, original_line);
+    
+    char *token, *token2, *token3, *operation;
+    int processed=0;
+    token=strtok(line," ");
+    
+    if(strcmp(token,"NOT")==0)
+    {
+        token=strtok(NULL," ");
+
+        token2=strtok(NULL," ");    // ->
+        token2=strtok(NULL," ");
+
+        create(token);
+        create(token2);
+        if(initialized(token))
+        {
+            int_assign(token2, ~(get_value(token)));
+            processed=1;
+        }
+    }
+    
+    else
+    {
+        
+        operation=strtok(NULL," ");
+        token2=strtok(NULL," ");
+        if(strcmp(operation,"->")==0)
+        {
+            create(token2);
+            if(initialized(token))
+            {
+                int_assign(token2, get_value(token));
+                processed=1;
+            }
+            return processed;
+        }
+         
+
+        token3=strtok(NULL," ");    // ->
+        token3=strtok(NULL," ");
+       
+        create(token);
+        create(token2);
+        create(token3);
+        if(initialized(token) && initialized(token2))
+        {
+            int_assign(token3, do_operation(token, token2, operation));
+            processed=1;
+        }
+    }
+    
+    free(line);
+    return processed;
+}
+
+
+int initialized(char *token)
+{
+    if(all_numbers(token)) return 1;
+
+    temp=root->next;
+    while(temp!=NULL)
+    {
+        if(strcmp(temp->name, token)==0)
+            return temp->init;
+        temp=temp->next;
+    }
+    
+    return 0;
+}
+
+
 
 void create(char *token)
 {
+    if(all_numbers(token)) return;
+
     int found=0;
-    struct node* temp=root->next;
+    temp=root->next;
+
     while(temp!=NULL)
     {
-        if(strcmp(token,temp->name)==0)
+        if(strcmp(token, temp->name)==0)
         {   
             found=1;
             break;
@@ -89,31 +183,35 @@ void create(char *token)
         temp=temp->next;
     temp->next=malloc(sizeof(struct node));
     temp=temp->next;
+    temp->name=malloc(NAMELEN);
     temp->next=NULL;
+    temp->init = 0;
     strcpy(temp->name,token);
     temp->value=0;
     
     return;
 }
 
-int all_numbers(char *token)
+
+unsigned short int all_numbers(char *token)
 {
-    int len=strlen(token);
-    for(int i=0;i<len;i++)
+    unsigned short int len=strlen(token);
+    for(unsigned short int i=0;i<len;i++)
         if(!(token[i]>='0'&&token[i]<='9'))
             return 0;
     
     return 1;
 }
 
-void int_assign(char *token, int n)
+void int_assign(char *token, unsigned short int n)
 {
-    struct node* temp=root->next;
+    temp=root->next;
     while(temp!=NULL)
     {
         if(strcmp(token,temp->name)==0)
         {   
             temp->value=n;
+            temp->init=1;
             break;
         }
         
@@ -124,11 +222,11 @@ void int_assign(char *token, int n)
 }
 
 
-int get_value(char *token)
+unsigned short int get_value(char *token)
 {
     if(all_numbers(token))
         return atoi(token);
-    struct node* temp=root->next;
+    temp=root->next;
     while(temp!=NULL)
     {
         if(strcmp(token,temp->name)==0)
@@ -141,7 +239,7 @@ int get_value(char *token)
 }
 
 
-int do_operation(char *token1, char *token2, char *operation)
+unsigned short int do_operation(char *token1, char *token2, char *operation)
 {
 
     if(strcmp(operation,"AND")==0)
