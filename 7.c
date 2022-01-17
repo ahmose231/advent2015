@@ -21,7 +21,7 @@ struct node {
 int all_initialized(int *p, int k);
 int initialized(char *token);
 int process_line(char *original_line);
-unsigned short int all_numbers(char *token);
+int all_numbers(char *token);
 void create(char *token);
 unsigned short int get_value(char *token);
 void int_assign(char *token, unsigned short int n);
@@ -193,7 +193,7 @@ void create(char *token)
 }
 
 
-unsigned short int all_numbers(char *token)
+int all_numbers(char *token)
 {
     unsigned short int len=strlen(token);
     for(unsigned short int i=0;i<len;i++)
